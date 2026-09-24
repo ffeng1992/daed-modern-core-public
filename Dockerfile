@@ -43,7 +43,7 @@ RUN echo 'ae68a6cce28e2a2a3c80694e2c4f539c6cdf15ce15dde7560a66661dc9054481  expe
 
 FROM alpine:3.22
 
-LABEL org.opencontainers.image.source=https://github.com/ffeng1992/daed-modern-core \
+LABEL org.opencontainers.image.source=https://github.com/ffeng1992/daed-modern-core-public \
       org.opencontainers.image.description="Experimental daed v1.27.0 and DAE v2.1.1 integration bridge"
 
 RUN mkdir -p /usr/local/share/daed/

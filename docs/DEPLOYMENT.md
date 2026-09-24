@@ -7,7 +7,7 @@ Do not use this installer on a host that already runs daed, DAE, or another traf
 After installing Docker Engine and Compose v2, clone the source and run the installer:
 
 ```sh
-git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core.git
+git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core-public.git
 cd daed-modern-core
 sudo ./deploy.sh
 ```

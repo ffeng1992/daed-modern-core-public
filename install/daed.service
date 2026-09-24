@@ -1,6 +1,6 @@
 [Unit]
 Description=daed is a integration solution of dae, API and UI.
-Documentation=https://github.com/ffeng1992/daed-modern-core
+Documentation=https://github.com/ffeng1992/daed-modern-core-public
 After=network-online.target docker.service systemd-sysctl.service
 Wants=network-online.target
 Conflicts=dae.service 

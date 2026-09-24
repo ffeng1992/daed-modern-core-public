@@ -4,8 +4,8 @@
   "private": true,
   "packageManager": "pnpm@10.24.0",
   "description": "Integration bridge for daed v1.27.0 and DAE v2.1.1",
-  "homepage": "https://github.com/ffeng1992/daed-modern-core",
-  "repository": "https://github.com/ffeng1992/daed-modern-core",
+  "homepage": "https://github.com/ffeng1992/daed-modern-core-public",
+  "repository": "https://github.com/ffeng1992/daed-modern-core-public",
   "scripts": {
     "build": "turbo run build",
     "build:mock": "turbo run build --env-mode=loose -- --mode mock",

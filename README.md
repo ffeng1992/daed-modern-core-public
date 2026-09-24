@@ -11,7 +11,7 @@
 在已安装 Docker Engine 与 Compose v2 的全新 Debian x86_64 主机上：
 
 ```sh
-git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core.git
+git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core-public.git
 cd daed-modern-core
 sudo ./deploy.sh
 ```
