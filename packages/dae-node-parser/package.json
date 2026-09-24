@@ -1,0 +1,46 @@
+{
+  "name": "@daeuniverse/dae-node-parser",
+  "type": "module",
+  "version": "1.21.0",
+  "description": "Node protocol URL parser and generator for dae proxy protocols",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daeuniverse/daed.git",
+    "directory": "packages/dae-node-parser"
+  },
+  "keywords": [
+    "proxy",
+    "dae",
+    "vmess",
+    "vless",
+    "shadowsocks",
+    "trojan",
+    "hysteria2"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "dependencies": {
+    "js-base64": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,3 @@
+# Unified diff context carries a leading space before tabs/blank lines.
+# Actual applied Go sources remain gofmt-checked and covered by CI.
+experiments/*.patch whitespace=-blank-at-eol,-space-before-tab

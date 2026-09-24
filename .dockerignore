@@ -1,0 +1,16 @@
+node_modules
+.git
+**/.git
+node_modules
+**/node_modules
+.artifacts
+.local
+.env*
+*.db
+*.pcap
+*.pcapng
+*.key
+*.pem
+__pycache__
+docs/private-port
+deployment

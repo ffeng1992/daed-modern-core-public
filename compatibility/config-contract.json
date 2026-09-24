@@ -1,0 +1,309 @@
+{
+  "schema": 1,
+  "core_config": {
+    "Global": [
+      {
+        "name": "TproxyPort",
+        "type": "uint16",
+        "tags": "mapstructure:\"tproxy_port\" default:\"12345\""
+      },
+      {
+        "name": "TproxyPortProtect",
+        "type": "bool",
+        "tags": "mapstructure:\"tproxy_port_protect\" default:\"true\""
+      },
+      {
+        "name": "SoMarkFromDae",
+        "type": "uint32",
+        "tags": "mapstructure:\"so_mark_from_dae\""
+      },
+      {
+        "name": "SoMarkFromDaeSet",
+        "type": "bool",
+        "tags": "mapstructure:\"so_mark_from_dae_set\""
+      },
+      {
+        "name": "LogLevel",
+        "type": "string",
+        "tags": "mapstructure:\"log_level\" default:\"info\""
+      },
+      {
+        "name": "TcpCheckUrl",
+        "type": "[]string",
+        "tags": "mapstructure:\"tcp_check_url\" default:\"http://cp.cloudflare.com,1.1.1.1,2606:4700:4700::1111\""
+      },
+      {
+        "name": "TcpCheckHttpMethod",
+        "type": "string",
+        "tags": "mapstructure:\"tcp_check_http_method\" default:\"HEAD\""
+      },
+      {
+        "name": "UdpCheckDns",
+        "type": "[]string",
+        "tags": "mapstructure:\"udp_check_dns\" default:\"dns.google:53,8.8.8.8,2001:4860:4860::8888\""
+      },
+      {
+        "name": "CheckInterval",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"check_interval\" default:\"30s\""
+      },
+      {
+        "name": "CheckTolerance",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"check_tolerance\" default:\"0\""
+      },
+      {
+        "name": "LanInterface",
+        "type": "[]string",
+        "tags": "mapstructure:\"lan_interface\""
+      },
+      {
+        "name": "WanInterface",
+        "type": "[]string",
+        "tags": "mapstructure:\"wan_interface\""
+      },
+      {
+        "name": "AllowInsecure",
+        "type": "bool",
+        "tags": "mapstructure:\"allow_insecure\" default:\"false\""
+      },
+      {
+        "name": "DialMode",
+        "type": "string",
+        "tags": "mapstructure:\"dial_mode\" default:\"domain\""
+      },
+      {
+        "name": "DisableWaitingNetwork",
+        "type": "bool",
+        "tags": "mapstructure:\"disable_waiting_network\" default:\"false\""
+      },
+      {
+        "name": "DisableTHP",
+        "type": "bool",
+        "tags": "mapstructure:\"disable_thp\" default:\"false\""
+      },
+      {
+        "name": "EnableLocalTcpFastRedirect",
+        "type": "bool",
+        "tags": "mapstructure:\"enable_local_tcp_fast_redirect\" default:\"false\""
+      },
+      {
+        "name": "AutoConfigKernelParameter",
+        "type": "bool",
+        "tags": "mapstructure:\"auto_config_kernel_parameter\" default:\"false\""
+      },
+      {
+        "name": "AutoConfigFirewallRule",
+        "type": "bool",
+        "tags": "mapstructure:\"auto_config_firewall_rule\" default:\"false\""
+      },
+      {
+        "name": "SniffingTimeout",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"sniffing_timeout\" default:\"30ms\""
+      },
+      {
+        "name": "AutoSniffPunt",
+        "type": "bool",
+        "tags": "mapstructure:\"auto_sniff_punt\" default:\"true\""
+      },
+      {
+        "name": "TlsImplementation",
+        "type": "string",
+        "tags": "mapstructure:\"tls_implementation\" default:\"tls\""
+      },
+      {
+        "name": "UtlsImitate",
+        "type": "string",
+        "tags": "mapstructure:\"utls_imitate\" default:\"chrome_auto\""
+      },
+      {
+        "name": "TlsFragment",
+        "type": "bool",
+        "tags": "mapstructure:\"tls_fragment\" default:\"false\""
+      },
+      {
+        "name": "TlsFragmentLength",
+        "type": "string",
+        "tags": "mapstructure:\"tls_fragment_length\" default:\"50-100\""
+      },
+      {
+        "name": "TlsFragmentInterval",
+        "type": "string",
+        "tags": "mapstructure:\"tls_fragment_interval\" default:\"10-20\""
+      },
+      {
+        "name": "PprofPort",
+        "type": "uint16",
+        "tags": "mapstructure:\"pprof_port\" default:\"0\""
+      },
+      {
+        "name": "Mptcp",
+        "type": "bool",
+        "tags": "mapstructure:\"mptcp\" default:\"false\""
+      },
+      {
+        "name": "BootstrapResolver",
+        "type": "string",
+        "tags": "mapstructure:\"bootstrap_resolver\""
+      },
+      {
+        "name": "FallbackResolver",
+        "type": "string",
+        "tags": "mapstructure:\"fallback_resolver\" default:\"8.8.8.8:53\""
+      },
+      {
+        "name": "BandwidthMaxTx",
+        "type": "string",
+        "tags": "mapstructure:\"bandwidth_max_tx\" default:\"0\""
+      },
+      {
+        "name": "BandwidthMaxRx",
+        "type": "string",
+        "tags": "mapstructure:\"bandwidth_max_rx\" default:\"0\""
+      },
+      {
+        "name": "UDPHopInterval",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"udphop_interval\" default:\"30s\""
+      },
+      {
+        "name": "BpfConnStateMapSize",
+        "type": "uint32",
+        "tags": "mapstructure:\"bpf_conn_state_map_size\" default:\"262144\""
+      }
+    ],
+    "Dns": [
+      {
+        "name": "IpVersionPrefer",
+        "type": "int",
+        "tags": "mapstructure:\"ipversion_prefer\""
+      },
+      {
+        "name": "FixedDomainTtl",
+        "type": "[]KeyableString",
+        "tags": "mapstructure:\"fixed_domain_ttl\""
+      },
+      {
+        "name": "Upstream",
+        "type": "[]KeyableString",
+        "tags": "mapstructure:\"upstream\""
+      },
+      {
+        "name": "Routing",
+        "type": "DnsRouting",
+        "tags": "mapstructure:\"routing\""
+      },
+      {
+        "name": "Bind",
+        "type": "string",
+        "tags": "mapstructure:\"bind\""
+      },
+      {
+        "name": "OptimisticCache",
+        "type": "bool",
+        "tags": "mapstructure:\"optimistic_cache\" default:\"true\""
+      },
+      {
+        "name": "OptimisticCacheTtl",
+        "type": "int",
+        "tags": "mapstructure:\"optimistic_cache_ttl\" default:\"60\""
+      },
+      {
+        "name": "OptimisticStaleReplyTtl",
+        "type": "int",
+        "tags": "mapstructure:\"optimistic_stale_reply_ttl\" default:\"30\""
+      },
+      {
+        "name": "MaxCacheSize",
+        "type": "int",
+        "tags": "mapstructure:\"max_cache_size\" default:\"65536\""
+      }
+    ],
+    "Group": [
+      {
+        "name": "Name",
+        "type": "string",
+        "tags": "mapstructure:\"_\""
+      },
+      {
+        "name": "Filter",
+        "type": "[][]*config_parser.Function",
+        "tags": "mapstructure:\"filter\" repeatable:\"\""
+      },
+      {
+        "name": "FilterAnnotation",
+        "type": "[][]*config_parser.Param",
+        "tags": "mapstructure:\"_\""
+      },
+      {
+        "name": "Policy",
+        "type": "FunctionListOrString",
+        "tags": "mapstructure:\"policy\" required:\"\""
+      },
+      {
+        "name": "TcpCheckUrl",
+        "type": "[]string",
+        "tags": "mapstructure:\"tcp_check_url\""
+      },
+      {
+        "name": "TcpCheckHttpMethod",
+        "type": "string",
+        "tags": "mapstructure:\"tcp_check_http_method\""
+      },
+      {
+        "name": "UdpCheckDns",
+        "type": "[]string",
+        "tags": "mapstructure:\"udp_check_dns\""
+      },
+      {
+        "name": "CheckInterval",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"check_interval\""
+      },
+      {
+        "name": "CheckTolerance",
+        "type": "time.Duration",
+        "tags": "mapstructure:\"check_tolerance\""
+      }
+    ],
+    "Routing": [
+      {
+        "name": "Rules",
+        "type": "[]*config_parser.RoutingRule",
+        "tags": "mapstructure:\"_\""
+      },
+      {
+        "name": "Fallback",
+        "type": "FunctionOrString",
+        "tags": "mapstructure:\"fallback\" default:\"direct\""
+      }
+    ]
+  },
+  "old_ui_form": [
+    "  name: z.string().min(1, 'Name is required'),",
+    "  logLevelNumber: z.number().min(0).max(4),",
+    "  tproxyPort: z.number(),",
+    "  allowInsecure: z.boolean(),",
+    "  checkIntervalSeconds: z.number(),",
+    "  checkToleranceMS: z.number(),",
+    "  sniffingTimeoutMS: z.number(),",
+    "  lanInterface: z.array(z.string()),",
+    "  wanInterface: z.array(z.string()),",
+    "  udpCheckDns: z.array(z.string().min(1, 'Required')).min(1),",
+    "  tcpCheckUrl: z.array(z.string().min(1, 'Required')).min(1),",
+    "  dialMode: z.string(),",
+    "  tcpCheckHttpMethod: z.string(),",
+    "  disableWaitingNetwork: z.boolean(),",
+    "  autoConfigKernelParameter: z.boolean(),",
+    "  tlsImplementation: z.string(),",
+    "  utlsImitate: z.string(),",
+    "  tproxyPortProtect: z.boolean(),",
+    "  soMarkFromDae: z.number(),",
+    "  mptcp: z.boolean(),",
+    "  enableLocalTcpFastRedirect: z.boolean(),",
+    "  bandwidthMaxTx: z.string(),",
+    "  bandwidthMaxRx: z.string(),",
+    "  fallbackResolver: z.string(),"
+  ]
+}

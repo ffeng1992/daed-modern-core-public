@@ -1,0 +1,3 @@
+[submodule "wing/dae-core"]
+	path = wing/dae-core
+	url = https://github.com/daeuniverse/dae

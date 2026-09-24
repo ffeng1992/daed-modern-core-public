@@ -1,0 +1,32 @@
+--- a/control/control_plane_core.go
++++ b/control/control_plane_core.go
+@@ -154,6 +154,7 @@
+ 
+ 	closed                context.Context
+ 	close                 context.CancelFunc
++	ifindexWatcherWG      sync.WaitGroup
+ 	ifmgr                 *component.InterfaceManager
+ 	interfacePatternMu    sync.Mutex
+ 	registeredLanPatterns map[string]struct{}
+@@ -487,6 +488,10 @@
+ 		}
+ 	}
+ 	c.close()
++	// Join the map reader before releasing this generation or its owned BPF FDs.
++	// Candidate generations borrow the same maps; Close must not return with
++	// a reader still able to access them after their owner starts teardown.
++	c.ifindexWatcherWG.Wait()
+ 	c.deferMu.Lock()
+ 	deferFuncs := append([]func() error(nil), c.deferFuncs...)
+ 	c.deferFuncs = nil
+@@ -603,7 +608,10 @@
+ 		return
+ 	}
+ 
++	// Constructor completes this Add before the plane can be closed.
++	c.ifindexWatcherWG.Add(1)
+ 	go func() {
++		defer c.ifindexWatcherWG.Done()
+ 		defer close(done)
+ 		for {
+ 			select {

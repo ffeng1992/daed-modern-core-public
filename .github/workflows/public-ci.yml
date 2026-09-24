@@ -1,0 +1,54 @@
+name: Build and test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: wing/go.sum
+      - name: Verify pinned source and reviewed patches
+        run: python3 scripts/verify-core-source.py
+      - name: Install web dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build web interface
+        run: pnpm build --filter daed
+      - name: Check compatibility contracts
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_core_source.py' -v
+          python3 -m unittest discover -s scripts -p 'test_config_contract.py' -v
+          python3 scripts/check-config-contract.py
+      - name: Build deployable image
+        run: docker build --tag daed-modern-core:ci .
+      - name: Prepare isolated backend test source
+        run: |
+          python3 scripts/verify-core-source.py --apply-shutdown-patch
+          cd wing
+          go generate ./graphql/service/config/global
+      - name: Run backend tests
+        working-directory: wing
+        run: go test -mod=readonly -race -tags dae_stub_ebpf -count=1 -timeout=10m ./...
+      - name: Check deployment preflight script syntax
+        run: bash -n deploy.sh

@@ -1,0 +1,24 @@
+services:
+  daed:
+    privileged: true
+    network_mode: host
+    pid: host
+    init: true
+    container_name: daed-modern-core
+    restart: unless-stopped
+    build:
+      context: .
+      args:
+        DAED_VERSION: ${DAED_VERSION:-source-build}
+    environment:
+      DAED_ENABLE_VALIDATED_BRIDGE: "1"
+    volumes:
+      - /sys:/sys
+      - /sys/fs/bpf:/sys/fs/bpf
+      - /etc/daed:/etc/daed
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2023/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "sources": {
+    "daed": {
+      "tag": "v1.27.0",
+      "commit": "06857f52c33cc3264aea9eb90431afbe8909073c"
+    },
+    "bundled_wing": {
+      "commit": "6bb6a310ef3d98bea691fd5955cc703306835546"
+    },
+    "dae": {
+      "tag": "v2.1.1",
+      "commit": "dbae2e82d3ed5324e1648548720f8bbc8cde3882"
+    }
+  },
+  "shutdown_patch": {
+    "path": "experiments/ifindex-shutdown-join.patch",
+    "sha256": "ae68a6cce28e2a2a3c80694e2c4f539c6cdf15ce15dde7560a66661dc9054481",
+    "files": [
+      "control/control_plane_core.go"
+    ]
+  },
+  "deployment": {
+    "mode": "docker-compose-fresh-install",
+    "host": "Debian x86_64",
+    "existing_install_migration": false,
+    "runtime_gate": "DAED_ENABLE_VALIDATED_BRIDGE=1",
+    "kernel_compatibility": "limited; review deployment documentation"
+  },
+  "sniffer_patch": {
+    "path": "experiments/sniffer-lifetime.patch",
+    "sha256": "1115d45980cd2f01317ffb259b28fd43f1778a2e4f7922c07fc63fc769835ab6",
+    "files": [
+      "component/sniffing/sniffer.go"
+    ]
+  }
+}
