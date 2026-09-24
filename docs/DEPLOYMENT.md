@@ -8,7 +8,7 @@ After installing Docker Engine and Compose v2, clone the source and run the inst
 
 ```sh
 git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core-public.git
-cd daed-modern-core
+cd daed-modern-core-public
 sudo ./deploy.sh
 ```
 

@@ -40,6 +40,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_core_source.py' -v
           python3 -m unittest discover -s scripts -p 'test_config_contract.py' -v
           python3 scripts/check-config-contract.py
+          python3 scripts/check-deployment-docs.py
       - name: Build deployable image
         run: docker build --tag daed-modern-core:ci .
       - name: Prepare isolated backend test source
