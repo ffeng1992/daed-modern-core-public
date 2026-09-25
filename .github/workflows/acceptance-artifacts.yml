@@ -34,7 +34,7 @@ jobs:
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'acceptance-artifacts'
           p=json.loads((root/'provenance.json').read_text())
           assert p['product_source_sha']=='e7347b2becc4b4a82adda0b23ce3c9d0621cd5ea'
-          assert p['tooling_sha']==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          assert p['tooling_sha']==subprocess.check_output(['git','-C',os.environ['GITHUB_WORKSPACE'],'rev-parse','HEAD'],text=True).strip()
           assert set(p['artifacts'])=={'dae-preparation.test','daed-isolated-test','bpf_bpfeb.o'}
           assert all(p['image_ids'][k].startswith('sha256:') for k in ('bundle','artifacts','runtime'))
           assert p['registry_digest'] is None

@@ -18,7 +18,7 @@ if grep -Eq '^[-+U]' "$out/submodules.txt"; then
 fi
 python3 "$tmp/source/scripts/verify-core-source.py"
 for patch in ifindex-shutdown-join sniffer-lifetime; do
-  sha256sum "$tmp/source/experiments/$patch.patch"
+  (cd "$tmp/source" && sha256sum "experiments/$patch.patch")
 done > "$out/patches.sha256"
 tag="acceptance-${product_sha:0:12}"
 docker build --build-arg DAED_VERSION=source-build --target build-bundle \
@@ -37,9 +37,9 @@ sha256sum "$out/dae-preparation.test" "$out/daed-isolated-test" "$out/bpf_bpfeb.
 docker run --rm --entrypoint sh "$tag:artifacts" -c \
   'go version; clang-15 --version | head -1; llvm-strip-15 --version | head -1; make --version | head -1' \
   > "$out/toolchain.txt"
-python3 - "$out" "$product_sha" "$tag" "$repo" <<'PY'
+python3 - "$out" "$product_sha" "$tag" "$repo" "$tmp/source" <<'PY'
 import hashlib, json, pathlib, subprocess, sys
-out, source_sha, tag, repo = sys.argv[1:]
+out, source_sha, tag, repo, source_path = sys.argv[1:]
 out = pathlib.Path(out)
 def image_id(kind):
     return subprocess.check_output(['docker','image','inspect','--format','{{.Id}}',f'{tag}:{kind}'],text=True).strip()
@@ -55,15 +55,17 @@ record={
  'submodules':(out/'submodules.txt').read_text().splitlines(),
  'patches_sha256':(out/'patches.sha256').read_text().splitlines(),
  'toolchain':(out/'toolchain.txt').read_text().splitlines(),
+ 'build_tag':tag,
+ 'build_source':{'sha':source_sha,'temporary_path_on_runner':source_path},
  'commands':[
   'git submodule update --init --recursive',
   'python3 scripts/verify-core-source.py',
-  'docker build --build-arg DAED_VERSION=source-build --target build-bundle -t TAG:bundle PRODUCT_SOURCE',
+  f'docker build --build-arg DAED_VERSION=source-build --target build-bundle -t {tag}:bundle {source_path}',
   'Dockerfile build-bundle: validate patch hashes, git apply --check, git apply, make -C wing deps, CGO_ENABLED=0 go build -mod=readonly -trimpath -tags deployment_candidate,embedallowed -ldflags AppName=daed,AppVersion=source-build',
-  'docker build --build-arg BUILDER_IMAGE=TAG:bundle -f scripts/acceptance-artifacts.Dockerfile -t TAG:artifacts PRODUCT_SOURCE',
+  f'docker build --build-arg BUILDER_IMAGE={tag}:bundle -f {repo}/scripts/acceptance-artifacts.Dockerfile -t {tag}:artifacts {source_path}',
   'CGO_ENABLED=0 go test -c -mod=readonly -trimpath -tags isolated_acceptance -o /build/dae-preparation.test ./dae',
   'CGO_ENABLED=0 go build -mod=readonly -trimpath -tags isolated_acceptance,embedallowed -ldflags AppName=daed,AppVersion=source-build -o /build/daed-isolated-test .',
-  'docker build --build-arg DAED_VERSION=source-build -t TAG:runtime PRODUCT_SOURCE'],
+  f'docker build --build-arg DAED_VERSION=source-build -t {tag}:runtime {source_path}'],
  'artifacts':{name:{'sha256':digest(out/name),'bytes':(out/name).stat().st_size} for name in files},
  'image_ids':{kind:image_id(kind) for kind in ('bundle','artifacts','runtime')},
  'registry_digest':None,
