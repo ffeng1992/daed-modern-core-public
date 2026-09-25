@@ -56,9 +56,8 @@ export function QueryProvider({ children, colorScheme, themeMode, setThemeMode }
   const endpointURL = useStore(endpointURLAtom)
   const token = useStore(tokenAtom)
 
-  // One cache per endpoint and token. Query observers keep the client they
-  // were created with, so the provider is keyed too: an identity change
-  // remounts the consumers instead of leaving them on the retired cache.
+  // One cache per endpoint and token. Routes using the query client remount
+  // on identity changes; the setup wizard must keep its local step state.
   const identity = `${endpointURL}|${token}`
   const queryClient = useMemo(() => new QueryClient(), [identity])
 
@@ -95,7 +94,7 @@ export function QueryProvider({ children, colorScheme, themeMode, setThemeMode }
 
   return (
     <ColorSchemeContext value={colorSchemeContextValue}>
-      <QueryClientProvider key={identity} client={queryClient}>
+      <QueryClientProvider client={queryClient}>
         <GQLQueryClientProvider client={gqlClient}>{children}</GQLQueryClientProvider>
       </QueryClientProvider>
     </ColorSchemeContext>

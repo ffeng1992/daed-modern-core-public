@@ -14,7 +14,7 @@ export function Router() {
   return (
     <RouterType>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
+        <Route path="/" element={<MainLayout key={`${endpointURL}|${token}`} />}>
           <Route index element={<OrchestratePage />} />
         </Route>
 
