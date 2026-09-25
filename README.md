@@ -8,7 +8,7 @@
 
 ## 一键部署
 
-在已安装 Docker Engine 与 Compose v2 的全新 Debian x86_64 主机上：
+在全新 Linux/Debian `x86_64` 主机上，以 root（通常使用 `sudo`）运行。宿主还需要 Git、Python 3、iproute2（`ss`）、已运行且 root 可访问的 Docker Engine daemon，以及 Docker Compose v2。克隆子模块和构建镜像需要出站网络。项目没有声明最低 Debian 或内核版本；内核/BPF 适用性需由管理员核实。宿主条件、冲突检查范围和失败后的处理见[完整部署说明](docs/DEPLOYMENT.md)。
 
 ```sh
 git clone --recurse-submodules https://github.com/ffeng1992/daed-modern-core-public.git
@@ -16,7 +16,7 @@ cd daed-modern-core-public
 sudo ./deploy.sh
 ```
 
-部署脚本会校验固定的 DAE 源码与补丁，并检查现有服务、配置和端口冲突。它发现已有 daed 服务或 `/etc/daed` 数据时会停止，不会覆盖或迁移现有安装。部署使用特权容器与主机网络，请先阅读[完整部署说明](docs/DEPLOYMENT.md)。
+部署脚本会校验固定的 DAE 源码与补丁，并检查指定的 daed/dae 服务与单元、同名容器、TCP 2023 监听和 `/etc/daed` 中的现有数据；这不是通用主机冲突扫描。它不会覆盖或迁移现有安装。成功提示只表示管理页面 HTTP 健康检查通过。管理员还需完成页面初始化、节点/订阅、DNS 和路由配置，并独立验收真实代理与直连流量。部署使用特权容器与主机网络，请先阅读[完整部署说明](docs/DEPLOYMENT.md)。
 
 ## 设计约束
 

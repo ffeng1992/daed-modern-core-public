@@ -21,6 +21,7 @@ source /etc/os-release
 [[ "$(uname -m)" == "x86_64" ]] || fail "Only x86_64 has been verified for this deployment path."
 
 command -v docker >/dev/null || fail "Install Docker Engine and the Compose plugin first; see docs/DEPLOYMENT.md."
+command -v git >/dev/null || fail "Install Git so the pinned source checkout can be verified; see docs/DEPLOYMENT.md."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 plugin is required."
 docker info >/dev/null 2>&1 || fail "Docker Engine is not running or the current account cannot access it."
 command -v ss >/dev/null || fail "Install iproute2 so the installer can check port conflicts."
@@ -42,7 +43,7 @@ for service in daed dae; do
 done
 
 if docker container inspect daed-modern-core >/dev/null 2>&1; then
-  fail "A daed-modern-core container already exists. Use the documented update procedure instead."
+  fail "A daed-modern-core container already exists. This installer supports fresh installs only; it will not update or replace an existing installation."
 fi
 listeners="$(ss -H -ltn 'sport = :2023')"
 if [[ -n "${listeners}" ]]; then
@@ -65,7 +66,10 @@ docker compose up -d --build
 
 for _ in $(seq 1 90); do
   state="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' daed-modern-core 2>/dev/null || true)"
-  [[ "${state}" == "healthy" ]] && { echo "daed Modern Core Bridge is healthy on TCP port 2023."; exit 0; }
+  [[ "${state}" == "healthy" ]] && {
+    echo "Management page HTTP health check passed on TCP port 2023. Complete the first-run setup and verify proxy traffic separately."
+    exit 0
+  }
   [[ "${state}" == "unhealthy" || "${state}" == "exited" ]] && break
   sleep 2
 done

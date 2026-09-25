@@ -53,3 +53,5 @@ jobs:
         run: go test -mod=readonly -race -tags dae_stub_ebpf -count=1 -timeout=10m ./...
       - name: Check deployment preflight script syntax
         run: bash -n deploy.sh
+      - name: Exercise deploy.sh in isolated command-shim tests
+        run: sudo -n python3 scripts/test-deploy-isolated.py
