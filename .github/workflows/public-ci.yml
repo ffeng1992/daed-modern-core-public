@@ -51,6 +51,19 @@ jobs:
       - name: Run backend tests
         working-directory: wing
         run: go test -mod=readonly -race -tags dae_stub_ebpf -count=1 -timeout=10m ./...
+      - name: Browser management regression against public API-only build
+        run: |
+          mkdir -p .artifacts
+          (cd wing && go build -mod=readonly -tags dae_stub_ebpf -o ../.artifacts/daed-browser-api .)
+          pnpm exec playwright install --with-deps chromium
+          node scripts/test-browser-api.mjs
+      - name: Preserve browser failure screenshot
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-browser-failure
+          path: .artifacts/browser-setup-failure.png
+          if-no-files-found: ignore
       - name: Check deployment preflight script syntax
         run: bash -n deploy.sh
       - name: Exercise deploy.sh in isolated command-shim tests
