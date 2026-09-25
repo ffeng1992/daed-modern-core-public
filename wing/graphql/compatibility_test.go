@@ -73,6 +73,35 @@ func TestFrontendDocuments(t *testing.T) {
 	t.Logf("validated %d frontend operations with synthetic variable values", count)
 }
 
+// The overview and latency operations use gqlClient.request with literal
+// documents, so the graphql() scan above does not see them.
+func TestManualManagementQueriesMatchBackendSchema(t *testing.T) {
+	s, err := Schema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.ReadFile("../../apps/web/src/apis/query.ts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fixture := range []struct {
+		name      string
+		variables map[string]interface{}
+	}{
+		{"TrafficOverview", map[string]interface{}{"windowSec": int32(60), "maxPoints": int32(10)}},
+		{"NodeLatencies", nil},
+	} {
+		re := regexp.MustCompile("(?s)`\\s*(query " + fixture.name + "\\b.*?)`")
+		matches := re.FindStringSubmatch(string(source))
+		if len(matches) != 2 {
+			t.Fatalf("frontend %s query not found", fixture.name)
+		}
+		if errs := s.ValidateWithVariables(matches[1], fixture.variables); len(errs) > 0 {
+			t.Errorf("frontend %s query differs from backend schema: %v", fixture.name, errs)
+		}
+	}
+}
+
 func TestSyntheticManagementAndConcurrentReads(t *testing.T) {
 	if err := db.InitDatabase(t.TempDir()); err != nil {
 		t.Fatal(err)
