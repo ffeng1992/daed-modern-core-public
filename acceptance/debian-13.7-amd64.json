@@ -1,0 +1,17 @@
+{
+  "product_source_sha": "e7347b2becc4b4a82adda0b23ce3c9d0621cd5ea",
+  "installer": {
+    "name": "debian-13.7.0-amd64-netinst.iso",
+    "url": "https://cdimage.debian.org/debian-cd/13.7.0/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso",
+    "sha256": "a7ef94ac2fb9a7fec454552abd629b7cc9d5155c886165a45649f5ce6167e355",
+    "official_sha256sums": "https://cdimage.debian.org/debian-cd/13.7.0/amd64/iso-cd/SHA256SUMS",
+    "official_signature": "https://cdimage.debian.org/debian-cd/13.7.0/amd64/iso-cd/SHA256SUMS.sign"
+  },
+  "runtime_image_origin": "Dockerfile+docker-compose.yml",
+  "network": {
+    "management": "host-only interface to Debian guest management; test client has no route to it",
+    "test_lan": "isolated client-to-guest LAN; guest is client's only gateway and DNS",
+    "fixture_wan": "separate isolated guest-to-fixture network; client has no interface or direct route",
+    "negative_control": "block guest forwarding and verify TCP/UDP/DNS cannot succeed directly; record fixture counters"
+  }
+}

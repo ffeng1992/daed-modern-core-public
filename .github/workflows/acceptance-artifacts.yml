@@ -1,0 +1,49 @@
+name: Compile acceptance artifacts
+
+on:
+  push:
+    branches: [codex/acceptance-artifacts-prep]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check tools and fail-closed controls
+        run: |
+          bash -n scripts/build-acceptance-artifacts.sh scripts/test-target-kernel-guest.sh
+          python3 -m py_compile scripts/check-acceptance-results.py scripts/preflight-debian-acceptance.py
+          python3 -m unittest discover -s scripts -p 'test_acceptance_results.py' -v
+          python3 -m json.tool acceptance/debian-13.7-amd64.json >/dev/null
+      - name: Compile pinned product source and record provenance
+        run: bash scripts/build-acceptance-artifacts.sh "$RUNNER_TEMP/acceptance-artifacts"
+      - name: Verify generated files and hashes
+        run: |
+          cd "$RUNNER_TEMP/acceptance-artifacts"
+          sha256sum -c artifacts.sha256
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'acceptance-artifacts'
+          p=json.loads((root/'provenance.json').read_text())
+          assert p['product_source_sha']=='e7347b2becc4b4a82adda0b23ce3c9d0621cd5ea'
+          assert p['tooling_sha']==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          assert set(p['artifacts'])=={'dae-preparation.test','daed-isolated-test','bpf_bpfeb.o'}
+          assert all(p['image_ids'][k].startswith('sha256:') for k in ('bundle','artifacts','runtime'))
+          assert p['registry_digest'] is None
+          assert all(v=='NOT_RUN' for v in p['execution'].values())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-artifacts-${{ github.sha }}
+          path: ${{ runner.temp }}/acceptance-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
