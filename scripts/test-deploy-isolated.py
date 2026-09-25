@@ -8,11 +8,13 @@ real Docker, systemd, host /etc, VM, or network device is accessed.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -78,10 +80,20 @@ def read_actions(log: Path) -> list[list[str]]:
     return [json.loads(line) for line in log.read_text().splitlines()]
 
 
+def drop_privileges() -> None:
+    os.setgroups([])
+    os.setgid(65534)
+    os.setuid(65534)
+
+
 def run_case(label: str, scenario: str, *, stdin: str | None = None,
-             missing: str | None = None, nonroot: bool = False) -> tuple[int, str, Path, list[list[str]]]:
+             missing: str | None = None, nonroot: bool = False,
+             destructive_config_control: bool = False
+             ) -> tuple[int, str, Path, list[list[str]], str | None]:
+    if destructive_config_control and scenario != "existing_config":
+        raise AssertionError("the destructive test control is only valid for the existing-config case")
     temp = Path(tempfile.mkdtemp(prefix="deploy-test-"))
-    temp.chmod(0o777)
+    temp.chmod(0o755)
     root = temp / "host"
     root.mkdir(mode=0o755)
     for path in (root / "etc/systemd/system", root / "lib/systemd/system", root / "usr/lib/systemd/system"):
@@ -105,14 +117,25 @@ def run_case(label: str, scenario: str, *, stdin: str | None = None,
     script = script.replace("@@TEST_USRLIB_SYSTEMD@@", "$TEST_ROOT/usr/lib/systemd")
     if re.search(r"(^|[\s\"'=])/(?:etc/os-release|etc/daed(?:/|\b)|etc/systemd/|lib/systemd/|usr/lib/systemd/)", script, re.M):
         raise AssertionError("refusing to run test copy with an absolute host system path still present")
+    if destructive_config_control:
+        guard = '  fail "$TEST_ROOT/etc/daed already contains data. This installer will not replace or migrate it."'
+        if script.count(guard) != 1:
+            raise AssertionError("could not locate the existing-config guard for the temporary mutation control")
+        script = script.replace(
+            guard,
+            '  : > "$TEST_ROOT/etc/daed/keep.db" # intentional test-only destructive control\n' + guard,
+            1,
+        )
     (work / "deploy.sh").write_text(script)
     (work / "deploy.sh").chmod(0o755)
+    work.chmod(0o755)
     (work / "docker-compose.yml").write_text("services: {}\n")
     (work / "scripts").mkdir()
     (work / "scripts/verify-core-source.py").write_text("# isolated fixture\n")
 
     shim_dir = temp / "bin"
     shim_dir.mkdir()
+    shim_dir.chmod(0o755)
     shim_file = shim_dir / "shim"
     shim_file.write_text(SHIM_SOURCE.replace("#!/usr/bin/env python3", f"#!{sys.executable}"))
     shim_file.chmod(0o755)
@@ -127,7 +150,13 @@ def run_case(label: str, scenario: str, *, stdin: str | None = None,
     if scenario == "existing_config":
         cfg = root / "etc/daed"
         cfg.mkdir(parents=True)
-        (cfg / "keep.db").write_text("keep\n")
+        (cfg / "keep.db").write_bytes(b"pre-existing config contents\n")
+    else:
+        cfg = root / "etc/daed"
+    original_config_hash = (
+        hashlib.sha256((cfg / "keep.db").read_bytes()).hexdigest()
+        if scenario == "existing_config" else None
+    )
 
     log = temp / "actions.jsonl"
     env = os.environ.copy()
@@ -141,37 +170,110 @@ def run_case(label: str, scenario: str, *, stdin: str | None = None,
     if nonroot:
         if os.geteuid() != 0:
             raise RuntimeError("nonroot case requires the test harness to run as root")
-        kwargs["preexec_fn"] = lambda: (os.setgid(65534), os.setuid(65534))
+        kwargs["preexec_fn"] = drop_privileges
     completed = subprocess.run(
         ["/bin/bash", str(work / "deploy.sh")], cwd=work, env=env,
         input=stdin, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         timeout=20, **kwargs,
     )
     actions = read_actions(log)
-    return completed.returncode, completed.stdout, root, actions
+    return completed.returncode, completed.stdout, root, actions, original_config_hash
+
+
+def assert_config_preserved(config_file: Path, expected_hash: str) -> None:
+    if not config_file.is_file():
+        raise AssertionError("existing configuration file was removed")
+    actual_hash = hashlib.sha256(config_file.read_bytes()).hexdigest()
+    if actual_hash != expected_hash:
+        raise AssertionError("existing configuration content changed")
 
 
 def check(label: str, scenario: str, *, expected: int = 1, stdin: str | None = None,
           missing: str | None = None, nonroot: bool = False,
+          destructive_config_control: bool = False,
           forbidden: tuple[str, ...] = ("install_action", "compose_up", "delete_action"),
           required_text: str | None = None) -> None:
-    code, output, hostroot, actions = run_case(label, scenario, stdin=stdin, missing=missing, nonroot=nonroot)
-    if code != expected:
-        raise AssertionError(f"{label}: expected exit {expected}, got {code}; output:\n{output}")
-    action_names = [row[1] for row in actions]
-    for action in forbidden:
-        if action in action_names:
-            raise AssertionError(f"{label}: forbidden action {action} occurred: {actions}")
-    if required_text and required_text not in output:
-        raise AssertionError(f"{label}: expected text missing: {required_text!r}; output:\n{output}")
-    if "install_action" not in action_names and (hostroot / "etc/daed").exists() and scenario != "existing_config":
-        raise AssertionError(f"{label}: config directory was created before confirmation/preflight: {actions}")
-    if "install_action" in action_names and not (hostroot / "etc/daed").is_dir():
-        raise AssertionError(f"{label}: expected post-confirmation config directory is missing: {actions}")
-    if scenario == "existing_config" and not (hostroot / "etc/daed/keep.db").is_file():
-        raise AssertionError("existing configuration was removed")
-    print(f"PASS {label}")
-    shutil.rmtree(hostroot.parent)
+    code, output, hostroot, actions, original_hash = run_case(
+        label, scenario, stdin=stdin, missing=missing, nonroot=nonroot,
+        destructive_config_control=destructive_config_control,
+    )
+    try:
+        if code != expected:
+            raise AssertionError(f"{label}: expected exit {expected}, got {code}; output:\n{output}")
+        action_names = [row[1] for row in actions]
+        for action in forbidden:
+            if action in action_names:
+                raise AssertionError(f"{label}: forbidden action {action} occurred: {actions}")
+        if required_text and required_text not in output:
+            raise AssertionError(f"{label}: expected text missing: {required_text!r}; output:\n{output}")
+        if "install_action" not in action_names and (hostroot / "etc/daed").exists() and scenario != "existing_config":
+            raise AssertionError(f"{label}: config directory was created before confirmation/preflight: {actions}")
+        if "install_action" in action_names and not (hostroot / "etc/daed").is_dir():
+            raise AssertionError(f"{label}: expected post-confirmation config directory is missing: {actions}")
+        if scenario == "existing_config":
+            if original_hash is None:
+                raise AssertionError("existing config fixture did not record a starting hash")
+            assert_config_preserved(hostroot / "etc/daed/keep.db", original_hash)
+        print(f"PASS {label}")
+    finally:
+        shutil.rmtree(hostroot.parent, ignore_errors=True)
+
+
+def check_config_hash_assertion_control() -> None:
+    try:
+        check(
+            "intentional config mutation control", "existing_config",
+            destructive_config_control=True,
+        )
+    except AssertionError as exc:
+        if str(exc) != "existing configuration content changed":
+            raise
+        print("PASS hash assertion control: normal existing-config test rejects temporary script truncation")
+    else:
+        raise AssertionError("configuration-integrity test failed to reject the intentional truncation")
+
+
+def check_nonroot_cannot_replace_test_paths() -> None:
+    code, _, hostroot, _, _ = run_case("permission fixture", "baseline", nonroot=True)
+    temp = hostroot.parent
+    checkout = temp / "checkout"
+    shim_dir = temp / "bin"
+    script = checkout / "deploy.sh"
+    paths = (temp, checkout, shim_dir, script)
+    try:
+        for path in paths:
+            mode = stat.S_IMODE(path.stat().st_mode)
+            if mode & (stat.S_IWGRP | stat.S_IWOTH):
+                raise AssertionError(f"test path grants group/other write permission: {path} mode={mode:o}")
+        if code != 1:
+            raise AssertionError("ordinary-privilege deploy invocation did not stop at the root check")
+        probe = r'''import os, sys
+paths = [(sys.argv[1], sys.argv[1] + ".moved"),
+         (sys.argv[2], sys.argv[2] + ".moved"),
+         (sys.argv[3], sys.argv[3] + ".moved")]
+for source, target in paths:
+    try: os.rename(source, target)
+    except PermissionError: pass
+    else: raise SystemExit("ordinary user renamed a protected test path: " + source)
+try:
+    with open(sys.argv[3], "wb") as stream: stream.write(b"replaced")
+except PermissionError: pass
+else: raise SystemExit("ordinary user overwrote the deployment script")
+'''
+        result = subprocess.run(
+            [sys.executable, "-c", probe, str(checkout), str(shim_dir), str(script)],
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=10, preexec_fn=drop_privileges,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"ordinary user could replace a protected test path: {result.stdout}")
+        if not checkout.is_dir() or not shim_dir.is_dir() or not script.is_file():
+            raise AssertionError("protected test path changed during the ordinary-user probe")
+        if any(Path(f"{path}.moved").exists() for path in (checkout, shim_dir, script)):
+            raise AssertionError("ordinary-user probe left a renamed test path")
+        print("PASS permission regression: ordinary user cannot rename checkout/bin/script or overwrite script")
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
 
 
 def main() -> int:
@@ -206,7 +308,7 @@ def main() -> int:
     check("unhealthy container is retained for inspection", "unhealthy", stdin="yes\n", forbidden=postconfirm, required_text="did not become healthy")
     check("health timeout exits nonzero and retains container", "timeout", stdin="yes\n", forbidden=postconfirm, required_text="did not become healthy")
 
-    code, output, hostroot, actions = run_case("healthy simulated", "healthy", stdin="yes\n")
+    code, output, hostroot, actions, _ = run_case("healthy simulated", "healthy", stdin="yes\n")
     names = [row[1] for row in actions]
     if code != 0 or "Management page HTTP health check passed" not in output:
         raise AssertionError(f"healthy simulation did not pass its intended check:\n{output}")
@@ -220,6 +322,8 @@ def main() -> int:
         raise AssertionError("deployment control flow unexpectedly deleted state")
     print("PASS simulated healthy path: actual deploy.sh control flow, explicit HTTP-only claim")
     shutil.rmtree(hostroot.parent)
+    check_config_hash_assertion_control()
+    check_nonroot_cannot_replace_test_paths()
     return 0
 
 
