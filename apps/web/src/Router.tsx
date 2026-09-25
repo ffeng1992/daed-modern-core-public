@@ -1,7 +1,7 @@
 import { createGraphiQLFetcher } from '@graphiql/toolkit'
 import { useStore } from '@nanostores/react'
 import { GraphiQL } from 'graphiql'
-import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { MainLayout, OrchestratePage, SetupPage } from '~/pages'
 import { endpointURLAtom, tokenAtom } from '~/store'
@@ -14,7 +14,12 @@ export function Router() {
   return (
     <RouterType>
       <Routes>
-        <Route path="/" element={<MainLayout key={`${endpointURL}|${token}`} />}>
+        <Route
+          path="/"
+          element={endpointURL && token
+            ? <MainLayout key={`${endpointURL}|${token}`} />
+            : <Navigate to="/setup" replace />}
+        >
           <Route index element={<OrchestratePage />} />
         </Route>
 

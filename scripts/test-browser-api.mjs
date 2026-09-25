@@ -99,7 +99,11 @@ try {
   await page.locator('[data-testid="section"]').first().waitFor();
   if(errors.length) throw new Error('Browser page error count: '+errors.length);
   assert.deepEqual(consoleErrors, [], 'browser console errors');
-  assert.deepEqual(failedRequests, [], 'failed browser requests');
+  assert.deepEqual(
+    failedRequests.filter(request => !request.endsWith('net::ERR_ABORTED')),
+    [],
+    'failed browser requests other than navigation cancellation',
+  );
   console.log('PASS: logout and relogin fetch current user through a fresh authenticated connection (API-only)');
 } catch (error) {
   if (page) {
