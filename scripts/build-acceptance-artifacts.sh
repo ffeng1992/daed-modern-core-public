@@ -37,6 +37,12 @@ sha256sum "$out/dae-preparation.test" "$out/daed-isolated-test" "$out/bpf_bpfeb.
 docker run --rm --entrypoint sh "$tag:artifacts" -c \
   'go version; clang-15 --version | head -1; llvm-strip-15 --version | head -1; make --version | head -1' \
   > "$out/toolchain.txt"
+docker run --rm --entrypoint sh node:22-bookworm-slim -c 'node --version; corepack --version' \
+  >> "$out/toolchain.txt"
+docker version --format 'Docker server {{.Server.Version}}' >> "$out/toolchain.txt"
+git --version >> "$out/toolchain.txt"
+python3 --version >> "$out/toolchain.txt" 2>&1
+echo 'pnpm 10.24.0 (pinned in Dockerfile)' >> "$out/toolchain.txt"
 python3 - "$out" "$product_sha" "$tag" "$repo" "$tmp/source" <<'PY'
 import hashlib, json, pathlib, subprocess, sys
 out, source_sha, tag, repo, source_path = sys.argv[1:]
