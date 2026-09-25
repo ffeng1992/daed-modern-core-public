@@ -64,6 +64,7 @@
     "switchLanguage": "Switch Language",
     "switchRunning": "Switch Running",
     "switchTheme": "Switch Theme",
+    "testLatency": "Test Latency",
     "update": "Update",
     "updateAll": "Update All",
     "viewDetails": "View Details",
@@ -120,9 +121,9 @@
     "spiderX": "Spider X"
   },
   "confirmModal": {
-    "cancel": "No, It's a mistake",
-    "confirm": "Yes, I'm sure",
-    "removeConfirmDescription": "Are you sure you want to remove this?"
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "removeConfirmDescription": "This action cannot be undone."
   },
   "connected": "connected",
   "connecting options": "Connecting Options",
@@ -133,6 +134,7 @@
     "config": {
       "allowInsecure": "Allow insecure TLS certificates. It is not recommended to turn it on unless you have to.",
       "autoConfigKernelParameter": "Automatically configure Linux kernel parameters like ip_forward and send_redirects.",
+      "bootstrapResolver": "Specify the DNS resolver used to resolve the fallback resolver domain before other resolvers are available. Leave empty to use dae's default bootstrap resolvers.",
       "checkTolerance": "Group will switch node only when new_latency <= old_latency - tolerance.",
       "dialMode": {
         "domain": "Dial proxy using the domain from sniffing. This will greatly relieve DNS pollution problem in an impure DNS environment. Generally, this mode brings faster proxy response time because proxy will re-resolve the domain remotely, contributing to better IP results. This policy does not impact routing. That is to say, domain rewrite will be routed after traffic split and dae will not re-route it.",
@@ -220,13 +222,34 @@
     "noAvailableSubscriptions": "No subscription groups available to add",
     "noSearchResults": "No matching results",
     "addSelectedNodes": "Add Selected Nodes",
-    "addSelectedSubscriptions": "Add Selected Subscription Groups"
+    "addSelectedSubscriptions": "Add Selected Subscription Groups",
+    "subscriptionRegexLabel": "Node Name Regex",
+    "subscriptionRegexPlaceholder": "Optional. Leave empty to add the whole subscription group",
+    "subscriptionRegexHint": "When provided, the same regex will be applied to every selected subscription group. Backend matching uses Go RE2 syntax, so lookahead/lookbehind and backreferences are not supported.",
+    "invalidRegex": "Invalid regular expression",
+    "subscriptionPreviewTitle": "Matched Node Preview",
+    "subscriptionPreviewSummary": "{{count}} nodes will be added with the current rule",
+    "subscriptionPreviewUnfiltered": "Without a regex, the entire subscription group will be added.",
+    "subscriptionPreviewSelectFirst": "Select one or more subscription groups to preview which nodes will be added.",
+    "subscriptionPreviewEmpty": "No nodes match the current rule.",
+    "subscriptionPreviewMatchedCount": "{{count}} nodes matched",
+    "subscriptionPreviewNoMatchForItem": "No nodes from this subscription group match the current rule.",
+    "subscriptionRegexTooltip": "Filter rule: {{regex}}"
   },
   "info": "info",
   "interface and kernel options": "Interface and Kernel Options",
   "ip": "IP Address",
   "lanInterface": "LAN Interface",
   "lanNatDirect": "LAN NAT Direct connection",
+  "latency": {
+    "label": "Latency",
+    "lastTested": "Last tested at {{ time }}",
+    "testAllNodes": "Test all node latencies",
+    "testAllNodesWithStatus": "Test all node latencies · Last tested at {{ time }} · {{ count }} nodes measured",
+    "nodesMeasured": "{{ count }} nodes measured",
+    "failed": "Failed",
+    "unavailable": "Unavailable"
+  },
   "link": "Link",
   "logLevel": "Log Level",
   "login account": "Login via username & password",
@@ -234,6 +257,29 @@
   "name": "Name",
   "node": "Node",
   "node connectivity check": "Node Connectivity Check",
+  "trafficOverview": {
+    "title": "Traffic Statistics",
+    "description": "Rolling uplink and downlink overview with a switchable time window.",
+    "uploadChart": "Uplink Traffic",
+    "downloadChart": "Downlink Traffic",
+    "uploadLegend": "Upload",
+    "downloadLegend": "Download",
+    "liveWindow": "Auto-scrolling live window",
+    "uploadSpeed": "Upload Speed",
+    "downloadSpeed": "Download Speed",
+    "activeConnections": "Active Connections",
+    "totalUpload": "Total Upload",
+    "totalDownload": "Total Download",
+    "udpSessions": "UDP Sessions",
+    "connectionsUnit": "conn",
+    "sessionsUnit": "sessions",
+    "ranges": {
+      "1m": "1m",
+      "10m": "10m",
+      "30m": "30m",
+      "1h": "1h"
+    }
+  },
   "notifications": {
     "login succeeded": "Login Succeeded",
     "success": "Success"
@@ -297,6 +343,7 @@
   "mptcp": "MPTCP",
   "bandwidthMaxTx": "Max Transmit Bandwidth",
   "bandwidthMaxRx": "Max Receive Bandwidth",
+  "bootstrapResolver": "Bootstrap Resolver",
   "fallbackResolver": "Fallback Resolver",
   "trace": "trace",
   "udpCheckDns": "DNS for UDP Check",
@@ -309,7 +356,7 @@
   "warn": "warn",
   "welcome back": "Welcome Back!",
   "welcome to": "Welcome to {{ name }}",
-  "what for": "A modern web dashboard for",
+  "what for": "daed is a web dashboard for <dae>dae</dae>.",
   "shortcuts": {
     "title": "Keyboard Shortcuts",
     "categories": {

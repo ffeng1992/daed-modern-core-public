@@ -40,6 +40,7 @@ type Query {
 	groups(id: ID): [Group!]! @hasRole(role: ADMIN)
 	group(name: String!): Group! @hasRole(role: ADMIN)
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection! @hasRole(role: ADMIN)
+	nodeLatencies(ids: [ID!]): [NodeLatency!]! @hasRole(role: ADMIN)
 	general: General! @hasRole(role: ADMIN)
 }
 type Mutation {
@@ -102,6 +103,9 @@ type Mutation {
 	# updateNode is to update a node with no subscription ID.
 	updateNode(id: ID!, newLink: String!): Node! @hasRole(role: ADMIN)
 
+	# testNodeLatencies is to trigger latency probes for all or selected nodes.
+	testNodeLatencies(ids: [ID!]): [NodeLatency!]! @hasRole(role: ADMIN)
+
 	# removeNodes is to remove nodes that have no subscription ID.
 	removeNodes(ids: [ID!]!): Int! @hasRole(role: ADMIN)
 
@@ -132,8 +136,8 @@ type Mutation {
 	# groupSetPolicy is to set the group a new policy.
 	groupSetPolicy(id: ID!, policy: Policy!, policyParams: [PolicyParam!]): Int! @hasRole(role: ADMIN)
 
-	# groupAddSubscriptions is to add subscriptions to the group.
-	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)
+	# groupAddSubscriptions is to add subscriptions to the group, optionally with a shared name filter regex.
+	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!, nameFilterRegex: String): Int! @hasRole(role: ADMIN)
 
 	# groupDelSubscriptions is to remove subscriptions from the group.
 	groupDelSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)

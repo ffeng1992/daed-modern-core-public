@@ -1,15 +1,18 @@
+import type { NodeLatencyProbeResult } from './mutation'
 import type { GQLClientInterface } from '~/contexts'
-import { useQuery } from '@tanstack/react-query'
 
+import { useQuery } from '@tanstack/react-query'
 import {
   QUERY_KEY_CONFIG,
   QUERY_KEY_DNS,
   QUERY_KEY_GENERAL,
   QUERY_KEY_GROUP,
   QUERY_KEY_NODE,
+  QUERY_KEY_NODE_LATENCY,
   QUERY_KEY_ROUTING,
   QUERY_KEY_STORAGE,
   QUERY_KEY_SUBSCRIPTION,
+  QUERY_KEY_TRAFFIC,
   QUERY_KEY_USER,
 } from '~/constants'
 import { useGQLQueryClient } from '~/contexts'
@@ -148,6 +151,94 @@ export function useGeneralQuery() {
   })
 }
 
+export interface TrafficOverviewQueryData {
+  updatedAt: string
+  uploadRate: number
+  downloadRate: number
+  uploadTotal: string
+  downloadTotal: string
+  activeConnections: number
+  udpSessions: number
+  samples: Array<{
+    timestamp: string
+    uploadRate: number
+    downloadRate: number
+  }>
+}
+
+export function useTrafficOverviewQuery(windowSec: number, maxPoints: number) {
+  const gqlClient = useGQLQueryClient()
+  const refetchInterval = Math.max(500, Math.min(5_000, Math.round(windowSec / 60) * 500))
+
+  return useQuery({
+    queryKey: [...QUERY_KEY_TRAFFIC, windowSec, maxPoints],
+    queryFn: async () => {
+      const data = await gqlClient.request<
+        { general: { runtimeOverview: TrafficOverviewQueryData } },
+        { windowSec: number; maxPoints: number }
+      >(
+        `
+          query TrafficOverview($windowSec: Int!, $maxPoints: Int!) {
+            general {
+              runtimeOverview(windowSec: $windowSec, maxPoints: $maxPoints) {
+                updatedAt
+                uploadRate
+                downloadRate
+                uploadTotal
+                downloadTotal
+                activeConnections
+                udpSessions
+                samples {
+                  timestamp
+                  uploadRate
+                  downloadRate
+                }
+              }
+            }
+          }
+        `,
+        {
+          windowSec,
+          maxPoints,
+        },
+      )
+
+      return data.general.runtimeOverview
+    },
+    placeholderData: (previousData) => previousData,
+    refetchInterval,
+  })
+}
+
+export function useNodeLatenciesQuery(refetchIntervalMs: number) {
+  const gqlClient = useGQLQueryClient()
+  const safeInterval = Math.max(1_000, refetchIntervalMs)
+
+  return useQuery({
+    queryKey: QUERY_KEY_NODE_LATENCY,
+    queryFn: async () => {
+      const data = await gqlClient.request<{ nodeLatencies: NodeLatencyProbeResult[] }>(
+        `
+          query NodeLatencies {
+            nodeLatencies {
+              id
+              latencyMs
+              alive
+              testedAt
+              message
+            }
+          }
+        `,
+      )
+
+      return data.nodeLatencies
+    },
+    placeholderData: (previousData) => previousData,
+    refetchInterval: safeInterval,
+    refetchIntervalInBackground: true,
+  })
+}
+
 export function useNodesQuery() {
   const gqlClient = useGQLQueryClient()
 
@@ -231,6 +322,7 @@ export function useConfigsQuery() {
                 wanInterface
                 udpCheckDns
                 tcpCheckUrl
+                bootstrapResolver
                 fallbackResolver
                 dialMode
                 tcpCheckHttpMethod
@@ -276,23 +368,24 @@ export function useGroupsQuery() {
                 subscriptionID
               }
               subscriptions {
-                id
-                updatedAt
-                tag
-                link
-                status
-                info
-
-                nodes {
-                  edges {
-                    id
-                    link
-                    name
-                    address
-                    protocol
-                    tag
-                    subscriptionID
-                  }
+                nameFilterRegex
+                matchedCount
+                subscription {
+                  id
+                  updatedAt
+                  tag
+                  link
+                  status
+                  info
+                }
+                matchedNodes {
+                  id
+                  link
+                  name
+                  address
+                  protocol
+                  tag
+                  subscriptionID
                 }
               }
               policy

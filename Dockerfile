@@ -19,7 +19,7 @@ RUN \
 # build bundle process
 ENV CGO_ENABLED=0
 ENV CLANG=clang-15
-ARG DAED_VERSION=0.0.0-dev
+ARG DAED_VERSION=2.1.1-modern-core
 
 COPY . /build/source
 COPY --from=build-web /build/apps/web/dist /build/web
@@ -44,7 +44,7 @@ RUN echo 'ae68a6cce28e2a2a3c80694e2c4f539c6cdf15ce15dde7560a66661dc9054481  expe
 FROM alpine:3.22
 
 LABEL org.opencontainers.image.source=https://github.com/ffeng1992/daed-modern-core-public \
-      org.opencontainers.image.description="Experimental daed v1.27.0 and DAE v2.1.1 integration bridge"
+      org.opencontainers.image.description="Experimental daed v2.1.1 and DAE v2.1.1 integration bridge"
 
 RUN mkdir -p /usr/local/share/daed/
 RUN mkdir -p /etc/daed/

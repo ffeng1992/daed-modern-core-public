@@ -304,6 +304,7 @@
     "  enableLocalTcpFastRedirect: z.boolean(),",
     "  bandwidthMaxTx: z.string(),",
     "  bandwidthMaxRx: z.string(),",
+    "  bootstrapResolver: z.string(),",
     "  fallbackResolver: z.string(),"
   ]
 }

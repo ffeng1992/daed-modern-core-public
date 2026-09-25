@@ -53,7 +53,7 @@
     "remove": "移除",
     "rename": "重命名",
     "reset": "重置",
-    "save dae": "救起大鹅",
+    "save dae": "保存 dae",
     "settings": "设置",
     "show content": "显示内容",
     "show sensitive": "点击查看",
@@ -64,6 +64,7 @@
     "switchLanguage": "切换语言",
     "switchRunning": "运行开关",
     "switchTheme": "切换主题",
+    "testLatency": "测试延迟",
     "update": "更新",
     "updateAll": "更新全部",
     "viewDetails": "查看详情",
@@ -120,9 +121,9 @@
     "spiderX": "Spider X"
   },
   "confirmModal": {
-    "cancel": "不， 我点错了",
-    "confirm": "是，我确定",
-    "removeConfirmDescription": "你确定要移除这个吗？"
+    "cancel": "取消",
+    "confirm": "确认删除",
+    "removeConfirmDescription": "此操作不可撤销。"
   },
   "connected": "已连接",
   "connecting options": "连接选项",
@@ -133,6 +134,7 @@
     "config": {
       "allowInsecure": "允许使用不安全的TLS证书。除非迫不得已，否则不建议打开它。",
       "autoConfigKernelParameter": "自动配置 Linux 内核参数，如 ip_forward（路由转发）和 send_redirects（发送重定向）。",
+      "bootstrapResolver": "指定在其他解析器可用前用于解析备用解析器域名的 DNS 解析器。留空则使用 dae 默认的引导解析器。",
       "checkTolerance": "只有当新的延迟 <= 旧的延迟 - 公差时，群组才会切换节点。",
       "dialMode": {
         "domain": "通过嗅探使用域名拨号代理。如果 DNS 环境不纯净，这将在很大程度上缓解 DNS 污染问题。通常，这种模式会带来更快的代理响应时间，因为代理会在远程重新解析域名，从而获得更好的 IP 连接结果。此策略不影响路由。也就是说，域重写将在流量拆分后进行路由，dae 不会对其进行重新路由。",
@@ -220,13 +222,34 @@
     "noAvailableSubscriptions": "暂无可添加的订阅组",
     "noSearchResults": "没有匹配结果",
     "addSelectedNodes": "添加所选节点",
-    "addSelectedSubscriptions": "添加所选订阅组"
+    "addSelectedSubscriptions": "添加所选订阅组",
+    "subscriptionRegexLabel": "节点名称正则",
+    "subscriptionRegexPlaceholder": "可选，留空则添加整个订阅组",
+    "subscriptionRegexHint": "填写后会对当前选中的所有订阅组统一应用该正则规则。后端使用 Go 的 RE2 语法，不支持前后预查和反向引用。",
+    "invalidRegex": "正则表达式无效",
+    "subscriptionPreviewTitle": "匹配节点预览",
+    "subscriptionPreviewSummary": "当前共匹配 {{count}} 个节点",
+    "subscriptionPreviewUnfiltered": "未填写正则时，将直接添加整个订阅组。",
+    "subscriptionPreviewSelectFirst": "先选择一个或多个订阅组，下面会展示将被加入的节点。",
+    "subscriptionPreviewEmpty": "当前规则没有匹配到任何节点。",
+    "subscriptionPreviewMatchedCount": "匹配 {{count}} 个节点",
+    "subscriptionPreviewNoMatchForItem": "这个订阅组在当前规则下没有匹配节点。",
+    "subscriptionRegexTooltip": "过滤规则：{{regex}}"
   },
   "info": "信息",
   "interface and kernel options": "接口及内核选项",
   "ip": "IP 地址",
   "lanInterface": "LAN 接口",
   "lanNatDirect": "LAN NAT 直连",
+  "latency": {
+    "label": "延迟",
+    "lastTested": "最近测速时间 {{ time }}",
+    "testAllNodes": "测试所有节点延迟",
+    "testAllNodesWithStatus": "测试所有节点延迟 · 最近测速时间 {{ time }} · 已测速 {{ count }} 个节点",
+    "nodesMeasured": "已测速 {{ count }} 个节点",
+    "failed": "失败",
+    "unavailable": "不可用"
+  },
   "link": "链接",
   "logLevel": "日志等级",
   "login account": "使用帐号密码登录",
@@ -234,6 +257,29 @@
   "name": "名字",
   "node": "节点",
   "node connectivity check": "节点连通性检测",
+  "trafficOverview": {
+    "title": "流量统计",
+    "description": "实时滚动展示上下行流量，并支持切换时间窗口。",
+    "uploadChart": "上行流量",
+    "downloadChart": "下行流量",
+    "uploadLegend": "上传",
+    "downloadLegend": "下载",
+    "liveWindow": "自动滚动的实时窗口",
+    "uploadSpeed": "上传速度",
+    "downloadSpeed": "下载速度",
+    "activeConnections": "活跃连接",
+    "totalUpload": "累计上传",
+    "totalDownload": "累计下载",
+    "udpSessions": "UDP 会话",
+    "connectionsUnit": "连接",
+    "sessionsUnit": "会话",
+    "ranges": {
+      "1m": "1 分钟",
+      "10m": "10 分钟",
+      "30m": "30 分钟",
+      "1h": "1 小时"
+    }
+  },
   "notifications": {
     "login succeeded": "登录成功",
     "success": "成功"
@@ -297,6 +343,7 @@
   "mptcp": "MPTCP",
   "bandwidthMaxTx": "最大上行带宽",
   "bandwidthMaxRx": "最大下行带宽",
+  "bootstrapResolver": "引导解析器",
   "fallbackResolver": "备用解析器",
   "trace": "跟踪",
   "udpCheckDns": "UDP 检测 DNS",
@@ -309,7 +356,7 @@
   "warn": "警告",
   "welcome back": "欢迎回来！",
   "welcome to": "欢迎来到 {{ name }}",
-  "what for": "现代化控制面板",
+  "what for": "daed 是 <dae>dae</dae> 的 Web 控制面板。",
   "shortcuts": {
     "title": "快捷键",
     "categories": {

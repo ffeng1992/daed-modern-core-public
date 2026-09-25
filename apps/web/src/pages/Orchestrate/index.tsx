@@ -5,22 +5,28 @@ import { DragDropContext } from '@hello-pangea/dnd'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  useConfigsQuery,
   useGroupAddNodesMutation,
   useGroupAddSubscriptionsMutation,
   useGroupDelNodesMutation,
   useGroupsQuery,
+  useNodeLatenciesQuery,
   useNodesQuery,
   useSubscriptionsQuery,
+  useTestNodeLatenciesMutation,
 } from '~/apis'
+import type { NodeLatencyProbeResult } from '~/apis'
 import { DraggableResourceType } from '~/constants'
 import { useMediaQuery } from '~/hooks'
 import { appStateAtom, groupSortOrdersAtom } from '~/store'
+import { deriveTime } from '~/utils'
 import { Config } from './Config'
 import { DNS } from './DNS'
 import { GroupResource } from './Group'
 import { NODE_DROPPABLE_ID, NodeResource } from './Node'
 import { Routing } from './Routing'
 import { SubscriptionResource } from './Subscription'
+import { TrafficOverview } from './TrafficOverview'
 
 function arrayMove<T>(array: T[], from: number, to: number): T[] {
   const newArray = [...array]
@@ -30,6 +36,7 @@ function arrayMove<T>(array: T[], from: number, to: number): T[] {
 }
 
 export function OrchestratePage() {
+  const { data: configsQuery } = useConfigsQuery()
   const { data: nodesQuery } = useNodesQuery()
   const { data: groupsQuery } = useGroupsQuery()
   const { data: subscriptionsQuery } = useSubscriptionsQuery()
@@ -37,6 +44,7 @@ export function OrchestratePage() {
   const groupAddNodesMutation = useGroupAddNodesMutation()
   const groupAddSubscriptionsMutation = useGroupAddSubscriptionsMutation()
   const groupDelNodesMutation = useGroupDelNodesMutation()
+  const testNodeLatenciesMutation = useTestNodeLatenciesMutation()
 
   const [draggingResource, setDraggingResource] = useState<DraggingResource | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -69,6 +77,49 @@ export function OrchestratePage() {
   const nodes = useMemo(() => nodesQuery?.nodes.edges ?? [], [nodesQuery?.nodes.edges])
   const groups = useMemo(() => groupsQuery?.groups ?? [], [groupsQuery?.groups])
   const subscriptions = useMemo(() => subscriptionsQuery?.subscriptions ?? [], [subscriptionsQuery?.subscriptions])
+  const getGroupById = useCallback(
+    (groupId: string) => groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === groupId),
+    [groupsQuery?.groups],
+  )
+  const getGroupSubscriptionBinding = useCallback(
+    (groupId: string, subscriptionId: string) =>
+      getGroupById(groupId)?.subscriptions.find(
+        (binding: GroupsQuery['groups'][number]['subscriptions'][number]) => binding.subscription.id === subscriptionId,
+      ),
+    [getGroupById],
+  )
+  const hasGroupSubscription = useCallback(
+    (groupId: string, subscriptionId: string) => !!getGroupSubscriptionBinding(groupId, subscriptionId),
+    [getGroupSubscriptionBinding],
+  )
+  const selectedConfig = useMemo(() => configsQuery?.configs.find((config) => config.selected), [configsQuery?.configs])
+  const nodeLatencyRefetchIntervalMs = useMemo(() => {
+    const configuredInterval = selectedConfig?.global.checkInterval
+    if (!configuredInterval) return 30_000
+
+    const ms = deriveTime(configuredInterval, 'ms')
+    return Math.max(1_000, Number.isFinite(ms) ? ms : 30_000)
+  }, [selectedConfig?.global.checkInterval])
+  const nodeLatenciesQuery = useNodeLatenciesQuery(nodeLatencyRefetchIntervalMs)
+  const nodeLatencies = useMemo<Record<string, NodeLatencyProbeResult>>(
+    () => Object.fromEntries((nodeLatenciesQuery.data ?? []).map((result) => [result.id, result])),
+    [nodeLatenciesQuery.data],
+  )
+  const lastLatencyProbeAt = useMemo(() => {
+    let latest: string | null = null
+    let latestMs = -Infinity
+
+    for (const { testedAt } of Object.values(nodeLatencies)) {
+      if (!testedAt) continue
+      const ms = Date.parse(testedAt)
+      if (Number.isFinite(ms) && ms > latestMs) {
+        latestMs = ms
+        latest = testedAt
+      }
+    }
+
+    return latest
+  }, [nodeLatencies])
 
   // Get sorted node IDs
   const sortedNodeIds = useMemo(() => {
@@ -341,11 +392,8 @@ export function OrchestratePage() {
       if (fallbackGroupId) {
         if (sourceDroppableId === 'subscription-list') {
           const subId = draggableId.replace('subscription-', '')
-          const targetGroup = groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId)
-          if (
-            targetGroup &&
-            !targetGroup.subscriptions.find((subscription: GroupsQuery['groups'][number]['subscriptions'][number]) => subscription.id === subId)
-          ) {
+          const targetGroup = getGroupById(fallbackGroupId)
+          if (targetGroup && !hasGroupSubscription(fallbackGroupId, subId)) {
             groupAddSubscriptionsMutation.mutate({ id: fallbackGroupId, subscriptionIDs: [subId] })
             return
           }
@@ -353,7 +401,9 @@ export function OrchestratePage() {
 
         if (sourceDroppableId === 'node-list') {
           const nodeId = draggableId.replace('node-', '')
-          const targetGroup = groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId)
+          const targetGroup = groupsQuery?.groups.find(
+            (group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId,
+          )
           if (
             targetGroup &&
             !targetGroup.nodes.find((node: GroupsQuery['groups'][number]['nodes'][number]) => node.id === nodeId)
@@ -363,9 +413,15 @@ export function OrchestratePage() {
           }
         }
 
-        if (sourceDroppableId.startsWith('subscription-') && sourceDroppableId.endsWith('-nodes') && sourceDroppableId !== 'subscription-list') {
+        if (
+          sourceDroppableId.startsWith('subscription-') &&
+          sourceDroppableId.endsWith('-nodes') &&
+          sourceDroppableId !== 'subscription-list'
+        ) {
           const nodeId = draggableId.replace('subscription-node-', '')
-          const targetGroup = groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId)
+          const targetGroup = groupsQuery?.groups.find(
+            (group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId,
+          )
           if (
             targetGroup &&
             !targetGroup.nodes.find((node: GroupsQuery['groups'][number]['nodes'][number]) => node.id === nodeId)
@@ -379,10 +435,14 @@ export function OrchestratePage() {
           const sourceGroupId = sourceDroppableId.replace('-nodes', '')
           const parsed = parseGroupItemId(draggableId)
           if (parsed && sourceGroupId !== fallbackGroupId) {
-            const targetGroup = groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId)
+            const targetGroup = groupsQuery?.groups.find(
+              (group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId,
+            )
             if (
               targetGroup &&
-              !targetGroup.nodes.find((node: GroupsQuery['groups'][number]['nodes'][number]) => node.id === parsed.itemId)
+              !targetGroup.nodes.find(
+                (node: GroupsQuery['groups'][number]['nodes'][number]) => node.id === parsed.itemId,
+              )
             ) {
               groupAddNodesMutation.mutate({ id: fallbackGroupId, nodeIDs: [parsed.itemId] })
               return
@@ -394,14 +454,14 @@ export function OrchestratePage() {
           const sourceGroupId = sourceDroppableId.replace('-subscriptions', '')
           const parsed = parseGroupItemId(draggableId)
           if (parsed && sourceGroupId !== fallbackGroupId) {
-            const targetGroup = groupsQuery?.groups.find((group: GroupsQuery['groups'][number]) => group.id === fallbackGroupId)
-            if (
-              targetGroup &&
-              !targetGroup.subscriptions.find(
-                (subscription: GroupsQuery['groups'][number]['subscriptions'][number]) => subscription.id === parsed.itemId,
-              )
-            ) {
-              groupAddSubscriptionsMutation.mutate({ id: fallbackGroupId, subscriptionIDs: [parsed.itemId] })
+            const targetGroup = getGroupById(fallbackGroupId)
+            const sourceBinding = getGroupSubscriptionBinding(sourceGroupId, parsed.itemId)
+            if (targetGroup && !hasGroupSubscription(fallbackGroupId, parsed.itemId)) {
+              groupAddSubscriptionsMutation.mutate({
+                id: fallbackGroupId,
+                subscriptionIDs: [parsed.itemId],
+                nameFilterRegex: sourceBinding?.nameFilterRegex ?? null,
+              })
               return
             }
           }
@@ -492,7 +552,7 @@ export function OrchestratePage() {
           const group = groupsQuery?.groups.find((g: GroupsQuery['groups'][number]) => g.id === sourceGroupId)
           if (group) {
             const currentIds = group.subscriptions.map(
-              (s: GroupsQuery['groups'][number]['subscriptions'][number]) => s.id,
+              (s: GroupsQuery['groups'][number]['subscriptions'][number]) => s.subscription.id,
             )
             const sortedIds = getGroupSortedIds(sourceGroupId, 'subscriptions', currentIds)
             updateGroupSortOrder(sourceGroupId, 'subscriptions', arrayMove(sortedIds, source.index, destination.index))
@@ -502,14 +562,14 @@ export function OrchestratePage() {
         // Cross-group drag - add subscription to target group
         const parsed = parseGroupItemId(draggableId)
         if (parsed) {
-          const targetGroup = groupsQuery?.groups.find((g: GroupsQuery['groups'][number]) => g.id === destGroupId)
-          if (
-            targetGroup &&
-            !targetGroup.subscriptions.find(
-              (s: GroupsQuery['groups'][number]['subscriptions'][number]) => s.id === parsed.itemId,
-            )
-          ) {
-            groupAddSubscriptionsMutation.mutate({ id: destGroupId, subscriptionIDs: [parsed.itemId] })
+          const targetGroup = getGroupById(destGroupId)
+          const sourceBinding = getGroupSubscriptionBinding(sourceGroupId, parsed.itemId)
+          if (targetGroup && !hasGroupSubscription(destGroupId, parsed.itemId)) {
+            groupAddSubscriptionsMutation.mutate({
+              id: destGroupId,
+              subscriptionIDs: [parsed.itemId],
+              nameFilterRegex: sourceBinding?.nameFilterRegex ?? null,
+            })
           }
         }
       }
@@ -535,12 +595,9 @@ export function OrchestratePage() {
     if (sourceDroppableId === 'subscription-list' && confirmedDestDroppableId.endsWith('-subscriptions')) {
       const subId = draggableId.replace('subscription-', '')
       const targetGroupId = confirmedDestDroppableId.replace('-subscriptions', '')
-      const targetGroup = groupsQuery?.groups.find((g: GroupsQuery['groups'][number]) => g.id === targetGroupId)
+      const targetGroup = getGroupById(targetGroupId)
 
-      if (
-        targetGroup &&
-        !targetGroup.subscriptions.find((s: GroupsQuery['groups'][number]['subscriptions'][number]) => s.id === subId)
-      ) {
+      if (targetGroup && !hasGroupSubscription(targetGroupId, subId)) {
         groupAddSubscriptionsMutation.mutate({ id: targetGroupId, subscriptionIDs: [subId] })
       }
       return
@@ -566,6 +623,8 @@ export function OrchestratePage() {
         <Routing />
       </div>
 
+      <TrafficOverview />
+
       <DragDropContext onDragStart={onDragStart} onDragUpdate={onDragUpdate} onDragEnd={onDragEnd}>
         <div className={`grid gap-5 ${matchSmallScreen ? 'grid-cols-1' : 'grid-cols-3'}`}>
           <GroupResource
@@ -573,12 +632,22 @@ export function OrchestratePage() {
             draggingResource={draggingResource}
             dragDestinationDroppableId={dragDestinationDroppableId}
             hoveredGroupId={hoveredGroupId}
+            nodeLatencies={nodeLatencies}
           />
           <NodeResource
             sortedNodes={sortedNodes}
             highlight={draggingResource?.type === DraggableResourceType.groupNode}
+            nodeLatencies={nodeLatencies}
           />
-          <SubscriptionResource sortedSubscriptions={sortedSubscriptions} />
+          <SubscriptionResource
+            sortedSubscriptions={sortedSubscriptions}
+            nodeLatencies={nodeLatencies}
+            testingLatencies={testNodeLatenciesMutation.isPending}
+            lastLatencyProbeAt={lastLatencyProbeAt}
+            onTestAllNodeLatencies={async () => {
+              await testNodeLatenciesMutation.mutateAsync(undefined)
+            }}
+          />
         </div>
       </DragDropContext>
     </div>

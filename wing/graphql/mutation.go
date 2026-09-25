@@ -374,6 +374,12 @@ func (r *MutationResolver) UpdateNode(args *struct {
 	return result, nil
 }
 
+func (r *MutationResolver) TestNodeLatencies(args *struct {
+	IDs *[]graphql.ID
+}) ([]*node.LatencyResolver, error) {
+	return node.TestLatencies(context.TODO(), args.IDs)
+}
+
 func (r *MutationResolver) RemoveNodes(args *struct {
 	IDs []graphql.ID
 }) (int32, error) {
@@ -508,8 +514,9 @@ func (r *MutationResolver) RenameGroup(args *struct {
 func (r *MutationResolver) GroupAddSubscriptions(args *struct {
 	ID              graphql.ID
 	SubscriptionIDs []graphql.ID
+	NameFilterRegex *string
 }) (int32, error) {
-	return group.AddSubscriptions(context.TODO(), args.ID, args.SubscriptionIDs)
+	return group.AddSubscriptions(context.TODO(), args.ID, args.SubscriptionIDs, args.NameFilterRegex)
 }
 
 func (r *MutationResolver) GroupDelSubscriptions(args *struct {

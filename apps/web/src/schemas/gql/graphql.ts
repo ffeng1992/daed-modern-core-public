@@ -151,7 +151,15 @@ export type Group = {
   nodes: Array<Node>
   policy: Policy
   policyParams: Array<Param>
-  subscriptions: Array<Subscription>
+  subscriptions: Array<GroupSubscription>
+}
+
+export type GroupSubscription = {
+  __typename?: 'GroupSubscription'
+  matchedCount: Scalars['Int']['output']
+  matchedNodes: Array<Node>
+  nameFilterRegex?: Maybe<Scalars['String']['output']>
+  subscription: Subscription
 }
 
 export type ImportArgument = {
@@ -255,6 +263,7 @@ export type MutationGroupAddNodesArgs = {
 
 export type MutationGroupAddSubscriptionsArgs = {
   id: Scalars['ID']['input']
+  nameFilterRegex?: InputMaybe<Scalars['String']['input']>
   subscriptionIDs: Array<Scalars['ID']['input']>
 }
 
@@ -788,6 +797,7 @@ export type GroupDelNodesMutation = { __typename?: 'Mutation'; groupDelNodes: nu
 
 export type GroupAddSubscriptionsMutationVariables = Exact<{
   id: Scalars['ID']['input']
+  nameFilterRegex?: InputMaybe<Scalars['String']['input']>
   subscriptionIDs: Array<Scalars['ID']['input']> | Scalars['ID']['input']
 }>
 
@@ -1048,6 +1058,7 @@ export type ConfigsQuery = {
       wanInterface: Array<string>
       udpCheckDns: Array<string>
       tcpCheckUrl: Array<string>
+      bootstrapResolver: string
       fallbackResolver: string
       dialMode: string
       tcpCheckHttpMethod: string
@@ -1087,26 +1098,28 @@ export type GroupsQuery = {
       subscriptionID?: string | null
     }>
     subscriptions: Array<{
-      __typename?: 'Subscription'
-      id: string
-      updatedAt: any
-      tag?: string | null
-      link: string
-      status: string
-      info: string
-      nodes: {
-        __typename?: 'NodesConnection'
-        edges: Array<{
-          __typename?: 'Node'
-          id: string
-          link: string
-          name: string
-          address: string
-          protocol: string
-          tag?: string | null
-          subscriptionID?: string | null
-        }>
+      __typename?: 'GroupSubscription'
+      matchedCount: number
+      nameFilterRegex?: string | null
+      subscription: {
+        __typename?: 'Subscription'
+        id: string
+        updatedAt: any
+        tag?: string | null
+        link: string
+        status: string
+        info: string
       }
+      matchedNodes: Array<{
+        __typename?: 'Node'
+        id: string
+        link: string
+        name: string
+        address: string
+        protocol: string
+        tag?: string | null
+        subscriptionID?: string | null
+      }>
     }>
     policyParams: Array<{ __typename?: 'Param'; key: string; val: string }>
   }>
@@ -2204,6 +2217,11 @@ export const GroupAddSubscriptionsDocument = {
             },
           },
         },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'nameFilterRegex' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+        },
       ],
       selectionSet: {
         kind: 'SelectionSet',
@@ -2221,6 +2239,11 @@ export const GroupAddSubscriptionsDocument = {
                 kind: 'Argument',
                 name: { kind: 'Name', value: 'subscriptionIDs' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'subscriptionIDs' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'nameFilterRegex' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'nameFilterRegex' } },
               },
             ],
           },
@@ -3299,6 +3322,7 @@ export const ConfigsDocument = {
                       { kind: 'Field', name: { kind: 'Name', value: 'wanInterface' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'udpCheckDns' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'tcpCheckUrl' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'bootstrapResolver' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'fallbackResolver' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'dialMode' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'tcpCheckHttpMethod' } },
@@ -3365,34 +3389,36 @@ export const GroupsDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'tag' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'link' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'status' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'info' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'nameFilterRegex' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'matchedCount' } },
                       {
                         kind: 'Field',
-                        name: { kind: 'Name', value: 'nodes' },
+                        name: { kind: 'Name', value: 'subscription' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'edges' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'link' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'address' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'protocol' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'tag' } },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'subscriptionID' } },
-                                ],
-                              },
-                            },
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'tag' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'link' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'status' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'info' } },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'matchedNodes' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'link' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'address' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'protocol' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'tag' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'subscriptionID' } },
                           ],
                         },
                       },
